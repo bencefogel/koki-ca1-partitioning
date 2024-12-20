@@ -1,10 +1,24 @@
 import networkx as nx
 import pandas as pd
 from pandas import DataFrame
+from networkx import DiGraph
 
 
-def create_directed_graph(df_iax: DataFrame, tp: int) -> nx.DiGraph:
-    df_iax_tp = df_iax[tp]
+def create_directed_graph(iax: DataFrame, tp: int) -> DiGraph:
+    """
+    Creates a directed graph based on the axial current value (iax) at a specified time point (tp).
+
+    Parameters:
+        iax (df): A pandas DataFrame with axial current data. It must include a column for the specified time point (`tp`)
+                            and index columns representing 'ref' and 'par' segments.
+        tp (int): The time point for which to construct the graph using axial current values.
+
+    Returns:
+        DiGraph: A directed graph where edges are added based on the sign of the axial current values.
+                    - If `iax` is positive, the edge direction is `par -> ref`.
+                    - If `iax` is negative, the edge direction is `ref -> par`.
+    """
+    df_iax_tp = iax[tp]
     df_iax_tp = df_iax_tp.reset_index()
     df_iax_tp.rename(columns={tp: "iax"}, inplace=True)  # has three columns: ref, par, iax
 
@@ -18,7 +32,20 @@ def create_directed_graph(df_iax: DataFrame, tp: int) -> nx.DiGraph:
     return dg
 
 
-def get_partitioning_order(dg: nx.DiGraph, target: str, direction: str) -> list[tuple[str, str]]:
+def get_partitioning_order(dg: DiGraph, target: str, direction: str) -> list[tuple[str, str]]:
+    """
+    Determines the partitioning order of nodes in a directed graph.
+
+    Parameters:
+        dg (DiGraph): The directed graph.
+        target (str): The node from which the traversal starts.
+        direction (str): The traversal direction. Options are:
+                         - "out": Outward traversal from the target node.
+                         - "in": Inward traversal towards the target node.
+
+    Returns:
+        list[tuple[str, str]]: A list of node pairs representing the traversal order.
+    """
     traversal_methods = {
         "out": get_traversal_order_out,
         "in": get_traversal_order_in
@@ -26,7 +53,18 @@ def get_partitioning_order(dg: nx.DiGraph, target: str, direction: str) -> list[
     return traversal_methods[direction](dg, target)
 
 
-def get_traversal_order_out(dg: nx.DiGraph, target: str) -> list[tuple[str, str]]:
+def get_traversal_order_out(dg: DiGraph, target: str) -> list[tuple[str, str]]:
+    """
+    Computes the outward traversal order from a target node in a directed graph.
+
+    Parameters:
+        dg (DiGraph): The directed graph.
+        target (str): The node from which the outward traversal starts.
+
+    Returns:
+        list[tuple[str, str]]: A list of node pairs representing the traversal order,
+                               starting from the leaf nodes.
+    """
     # Find subgraph using depth first search algorithm and copy iax values of edges
     dg_dfs_out = nx.dfs_tree(dg, source=target)
     for u, v in dg_dfs_out.edges():
@@ -40,7 +78,18 @@ def get_traversal_order_out(dg: nx.DiGraph, target: str) -> list[tuple[str, str]
     return node_pairs_out
 
 
-def get_traversal_order_in(dg: nx.DiGraph, target: str) -> list[tuple[str, str]]:
+def get_traversal_order_in(dg: DiGraph, target: str) -> list[tuple[str, str]]:
+    """
+    Computes the inward traversal order towards a target node in a directed graph.
+
+    Parameters:
+        dg (nx.DiGraph): The directed graph.
+        target (str): The node towards which the inward traversal is computed.
+
+    Returns:
+        list[tuple[str, str]]: A list of node pairs representing the traversal order,
+                               starting from the leaf nodes.
+    """
     dg_reversed = nx.reverse(dg, copy=True)
     # Find subgraph using depth first search algorithm and copy iax values of edges
     dg_dfs_in = nx.dfs_tree(dg_reversed, source=target)
