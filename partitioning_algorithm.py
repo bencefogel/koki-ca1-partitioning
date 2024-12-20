@@ -1,9 +1,11 @@
 import pandas as pd
 import numpy as np
 from pandas import DataFrame, Series
+from tqdm import tqdm
+from partitioning_order import create_directed_graph, get_partitioning_order
 
 
-def part_iax_multiple(im: DataFrame, iax: DataFrame, timepoints: list, target: str) -> DataFrame:
+def partition_iax(im: DataFrame, iax: DataFrame, timepoints: list, target: str) -> DataFrame:
     """
     Partitions axial currents into membrane currents across multiple time points and updates a copy of the membrane currents DataFrame.
 
@@ -25,18 +27,18 @@ def part_iax_multiple(im: DataFrame, iax: DataFrame, timepoints: list, target: s
         for segment_pair in partitioning_order_out:
             ref = segment_pair[0]
             par = segment_pair[1]
-            partition_iax(ref, par, tp, im_part, iax)
+            partition_iax_single(ref, par, tp, im_part, iax)
 
         partitioning_order_in = get_partitioning_order(dg, target, 'in')
         for segment_pair in partitioning_order_in:
             ref = segment_pair[0]
             par = segment_pair[1]
-            partition_iax(ref, par, tp, im_part, iax)
+            partition_iax_single(ref, par, tp, im_part, iax)
 
     return im_part
 
 
-def partition_iax(ref: str, par: str, tp: int, im: DataFrame, iax: DataFrame) -> None:
+def partition_iax_single(ref: str, par: str, tp: int, im: DataFrame, iax: DataFrame) -> None:
     """
     Partitions axial currents at a specific time point into membrane currents and updates the parent node's membrane currents.
 
