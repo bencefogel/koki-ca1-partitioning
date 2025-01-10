@@ -5,6 +5,7 @@ from tqdm import tqdm
 from partitioning_order import create_directed_graph, get_partitioning_order
 
 
+#TODO: the sum of axial currents and membrane currents is not equal to the partitioned membrane currents when positive and negative currents are calculated separately
 def partition_iax(im: DataFrame, iax: DataFrame, timepoints: list, target: str) -> DataFrame:
     """
     Partitions axial currents into membrane currents across multiple time points and updates a copy of the membrane currents DataFrame.
@@ -18,7 +19,9 @@ def partition_iax(im: DataFrame, iax: DataFrame, timepoints: list, target: str) 
     Returns:
         DataFrame: A modified copy of `im` with updated membrane currents after partitioning axial currents for all time points.
     """
-    im_part = im.copy()
+    # Separate DataFrames for positive and negative membrane currents
+    im_pos = im.clip(lower=0)  # Positive currents only
+    im_neg = im.clip(upper=0)  # Negative currents only
 
     for tp in tqdm(timepoints):
         dg = create_directed_graph(iax, tp)
@@ -27,15 +30,15 @@ def partition_iax(im: DataFrame, iax: DataFrame, timepoints: list, target: str) 
         for segment_pair in partitioning_order_out:
             ref = segment_pair[0]
             par = segment_pair[1]
-            partition_iax_single(ref, par, tp, im_part, iax)
+            partition_iax_single(ref, par, tp, im_pos, iax)
 
         partitioning_order_in = get_partitioning_order(dg, target, 'in')
         for segment_pair in partitioning_order_in:
             ref = segment_pair[0]
             par = segment_pair[1]
-            partition_iax_single(ref, par, tp, im_part, iax)
+            partition_iax_single(ref, par, tp, im_neg, iax)
 
-    return im_part
+    return im_pos.iloc[:, timepoints].loc[target], im_neg.iloc[:, timepoints].loc[target]
 
 
 def partition_iax_single(ref: str, par: str, tp: int, im: DataFrame, iax: DataFrame) -> None:
