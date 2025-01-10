@@ -16,6 +16,6 @@ To calculate the partitioned axial current components, you need to configure the
 ## **Performance**
 - Execution time: Approximately 5 seconds per iteration (where one iteration corresponds to processing a single timepoint).
 - This timing reflects the algorithm's performance on DataFrames with the following dimensions:
-  - iax: 1400 x 20k
-  - im: 20k x 20k
+  - iax: ~1400 x 20k
+  - im: ~20k x 20k
   Processing is notably faster for smaller DataFrames.
