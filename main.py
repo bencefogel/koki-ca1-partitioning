@@ -35,13 +35,12 @@ def process_file_pair(im_file, iax_file):
     df_im = load_df(im_index_file, im_file)
 
     # Perform the partitioning algorithm
-    im_part_pos, im_part_neg = partition_iax(df_im, df_iax, timepoints=df_iax.columns, target=segment)
+    im_part_pos, im_part_neg = partition_iax(df_im, df_iax, timepoints=list(range(50,52)), target=segment)
     # to test on smaller data: timepoints=list(range(50,52))
     # process full dataset: timepoints=df_iax.columns
 
     # Extract file numbers
     im_number = extract_file_number(im_file)
-    iax_number = extract_file_number(iax_file)
 
     # Save results to output directory as .csv files
     im_pos_output_path = os.path.join(output_dir, f"im_part_pos_{im_number}.csv")

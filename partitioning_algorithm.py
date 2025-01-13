@@ -1,9 +1,8 @@
-from typing import Any
-
 import pandas as pd
 import numpy as np
 from pandas import DataFrame, Series
 from tqdm import tqdm
+
 from partitioning_order import create_directed_graph, get_partitioning_order
 
 
@@ -54,7 +53,7 @@ def partition_iax_single(ref: str, par: str, tp: int, im: DataFrame, iax: DataFr
         iax (DataFrame): A DataFrame containing axial currents for each reference-parent pair and time point.
 
     Returns:
-        None: The function updates the `df_im` DataFrame in place with the partitioned axial currents added to the parent node's membrane currents.
+        None: The function updates the `im` DataFrame in place with the partitioned axial currents added to the parent node's membrane currents.
     """
     im_tp = im.loc[ref, tp]
     im_tp_out = im_tp[im_tp >= 0]
@@ -106,5 +105,17 @@ def get_part_in(iax_tp: float, im_tp_in: Series) -> Series:
     partitioned_in = pd.Series(ratios * iax_tp, index=im_tp_in.index)
     return partitioned_in
 
+
+if __name__ == '__main__':
+    from utils import load_df
+
+    iax_index_file = 'E:/cluster_seed30/preprocessed_data/axial_currents_merged_soma/multiindex_merged_soma.csv'
+    iax_file = 'E:/cluster_seed30/preprocessed_data/axial_currents_merged_soma/merged_soma_values_5.npy'
+    im_index_file = 'E:/cluster_seed30/preprocessed_data/membrane_currents_merged_soma/multiindex_merged_soma.csv'
+    im_file = 'E:/cluster_seed30/preprocessed_data/membrane_currents_merged_soma/merged_soma_values_5.npy'
+    df_iax = load_df(iax_index_file, iax_file)
+    df_im = load_df(im_index_file, im_file)
+
+    im_part_pos, im_part_neg = partition_iax(df_im, df_iax, timepoints=list(range(50,52)), target='soma')
 
 
