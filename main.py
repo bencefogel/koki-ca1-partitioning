@@ -1,7 +1,6 @@
 from concurrent.futures import ProcessPoolExecutor
 import glob
 import os
-import pandas as pd  # Required for DataFrame operations
 from utils import load_df, plot_sums
 from partitioning_algorithm import partition_iax
 
@@ -17,7 +16,7 @@ iax_values_files = glob.glob(input_dir + '/axial_currents_merged_soma/*.npy')
 im_index_file = input_dir + '/membrane_currents_merged_soma/multiindex_merged_soma.csv'
 im_values_files = glob.glob(input_dir + '/membrane_currents_merged_soma/*.npy')
 
-tps = list(range(50, 52))  # Replace with your desired time points
+tps = list(range(50, 52))
 segment = 'soma'
 
 
@@ -36,7 +35,9 @@ def process_file_pair(im_file, iax_file):
     df_im = load_df(im_index_file, im_file)
 
     # Perform the partitioning algorithm
-    im_part_pos, im_part_neg = partition_iax(df_im, df_iax, timepoints=tps, target=segment)
+    im_part_pos, im_part_neg = partition_iax(df_im, df_iax, timepoints=df_iax.columns, target=segment)
+    # to test on smaller data: timepoints=list(range(50,52))
+    # process full dataset: timepoints=df_iax.columns
 
     # Extract file numbers
     im_number = extract_file_number(im_file)
