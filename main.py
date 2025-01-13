@@ -16,8 +16,8 @@ iax_values_files = glob.glob(input_dir + '/axial_currents_merged_soma/*.npy')
 im_index_file = input_dir + '/membrane_currents_merged_soma/multiindex_merged_soma.csv'
 im_values_files = glob.glob(input_dir + '/membrane_currents_merged_soma/*.npy')
 
-tps = list(range(50, 52))
 segment = 'soma'
+batch_size = 2 #  number of files to process parallel
 
 
 def extract_file_number(filepath):
@@ -68,10 +68,5 @@ def process_in_batches(batch_size=1):
                     print(f"Error processing files: {e}")
 
 
-def main():
-    # Start the batch processing
-    process_in_batches(batch_size=1)
-
-
 if __name__ == '__main__':
-    main()
+    process_in_batches(batch_size=batch_size)
