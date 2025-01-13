@@ -1,49 +1,77 @@
+from concurrent.futures import ProcessPoolExecutor
+import glob
 import os
-import pandas as pd
+import pandas as pd  # Required for DataFrame operations
 from utils import load_df, plot_sums
 from partitioning_algorithm import partition_iax
 
+input_dir = 'E:/cluster_seed30/preprocessed_data'
+output_dir = 'E:/cluster_seed30/partitioned_data'
 
-# Set parameters
-input_dir = 'E:/cluster_seed30/preprocessed_data/'
-output_dir = 'E:/cluster_seed30/partitioned_data/'
+# Ensure the output directory exists
+os.makedirs(output_dir, exist_ok=True)
+
+iax_index_file = input_dir + '/axial_currents_merged_soma/multiindex_merged_soma.csv'
+iax_values_files = glob.glob(input_dir + '/axial_currents_merged_soma/*.npy')
+
+im_index_file = input_dir + '/membrane_currents_merged_soma/multiindex_merged_soma.csv'
+im_values_files = glob.glob(input_dir + '/membrane_currents_merged_soma/*.npy')
+
+tps = list(range(50, 52))  # Replace with your desired time points
 segment = 'soma'
-chunk_size = 10000
 
-# Load DataFrames
-df_iax = load_df(input_dir+'axial_currents_merged_soma/multiindex_merged_soma.csv', input_dir+'axial_currents_merged_soma/merged_soma_values_0.npy')
-df_im = load_df(input_dir+'membrane_currents_merged_soma/multiindex_merged_soma.csv', input_dir+'membrane_currents_merged_soma/merged_soma_values_0.npy')
 
-# Initialize empty lists for partitioned results
-im_part_pos_list = []
-im_part_neg_list = []
+def extract_file_number(filepath):
+    """Extract the number from the file name."""
+    filename = os.path.basename(filepath)
+    number = ''.join(filter(str.isdigit, filename))
+    return number
 
-# Process DataFrame in column chunks
-num_columns = len(df_iax.columns)
-for start_col in range(0, num_columns, chunk_size):
-    # Define the column range for this chunk
-    end_col = min(start_col + chunk_size, num_columns)
-    col_subset = df_iax.columns[start_col:end_col]
 
-    # Subset DataFrames for the current columns
-    df_iax_chunk = df_iax[col_subset]
-    df_im_chunk = df_im[col_subset]
+def process_file_pair(im_file, iax_file):
+    # Log the files being processed
+    print(f"Reading and processing files: im = {im_file}, iax = {iax_file}")
+    # Load data for the given pair of files
+    df_iax = load_df(iax_index_file, iax_file)
+    df_im = load_df(im_index_file, im_file)
 
-    # Partition currents for the current column subset
-    chunk_pos, chunk_neg = partition_iax(df_im_chunk, df_iax_chunk, timepoints=list(col_subset), target=segment)
+    # Perform the partitioning algorithm
+    im_part_pos, im_part_neg = partition_iax(df_im, df_iax, timepoints=tps, target=segment)
 
-    # Append chunk results to lists
-    im_part_pos_list.append(chunk_pos)
-    im_part_neg_list.append(chunk_neg)
+    # Extract file numbers
+    im_number = extract_file_number(im_file)
+    iax_number = extract_file_number(iax_file)
 
-# Concatenate all chunk results into final DataFrames
-im_part_pos = pd.concat(im_part_pos_list, axis=1)
-im_part_neg = pd.concat(im_part_neg_list, axis=1)
+    # Save results to output directory as .csv files
+    im_pos_output_path = os.path.join(output_dir, f"im_part_pos_{im_number}.csv")
+    im_neg_output_path = os.path.join(output_dir, f"im_part_neg_{im_number}.csv")
 
-# Generate output file names with the file_index appended to avoid overwriting
-pos_output_file = os.path.join(output_dir, f'partitioned_pos.csv')
-neg_output_file = os.path.join(output_dir, f'partitioned_neg.csv')
+    # Save DataFrames to CSV
+    im_part_pos.to_csv(im_pos_output_path, index=False)
+    im_part_neg.to_csv(im_neg_output_path, index=False)
 
-# Save DataFrames to CSV
-im_part_pos.to_csv(pos_output_file, index=False)
-im_part_neg.to_csv(neg_output_file, index=False)
+
+def process_in_batches(batch_size=1):
+    """Process files in batches to avoid overloading system resources."""
+    # Split the file pairs into smaller batches
+    batches = [list(zip(im_values_files[i:i + batch_size], iax_values_files[i:i + batch_size]))
+               for i in range(0, len(im_values_files), batch_size)]
+
+    # Iterate over each batch and process it
+    for batch in batches:
+        with ProcessPoolExecutor(max_workers=2) as executor:
+            futures = [executor.submit(process_file_pair, im_file, iax_file) for im_file, iax_file in batch]
+            for future in futures:
+                try:
+                    future.result()
+                except Exception as e:
+                    print(f"Error processing files: {e}")
+
+
+def main():
+    # Start the batch processing
+    process_in_batches(batch_size=1)
+
+
+if __name__ == '__main__':
+    main()

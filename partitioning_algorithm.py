@@ -1,3 +1,5 @@
+from typing import Any
+
 import pandas as pd
 import numpy as np
 from pandas import DataFrame, Series
@@ -5,8 +7,7 @@ from tqdm import tqdm
 from partitioning_order import create_directed_graph, get_partitioning_order
 
 
-#TODO: the sum of axial currents and membrane currents is not equal to the partitioned membrane currents when positive and negative currents are calculated separately
-def partition_iax(im: DataFrame, iax: DataFrame, timepoints: list, target: str) -> DataFrame:
+def partition_iax(im: DataFrame, iax: DataFrame, timepoints: list, target: str) -> tuple[DataFrame, DataFrame]:
     """
     Partitions axial currents into membrane currents across multiple time points and updates a copy of the membrane currents DataFrame.
 
@@ -17,7 +18,7 @@ def partition_iax(im: DataFrame, iax: DataFrame, timepoints: list, target: str) 
         target (str): The target node to start the partitioning traversal from.
 
     Returns:
-        DataFrame: A modified copy of `im` with updated membrane currents after partitioning axial currents for all time points.
+        tuple[DataFrame, DataFrame]: A modified copy of `im` with updated membrane currents after partitioning axial currents for all time points. Positive and negative currents are in separate dataframes.
     """
     # Separate DataFrames for positive and negative membrane currents
     im_pos = im.clip(lower=0)  # Positive currents only
