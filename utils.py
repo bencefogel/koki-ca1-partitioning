@@ -49,7 +49,7 @@ def get_iax(df: DataFrame, segment: str) -> DataFrame:
     return df_iax_seg
 
 
-def get_itotal_dataframes(df_im: DataFrame) -> DataFrame:
+def get_itotal_dataframes(df_im: DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
    Computes the sum of positive and negative membrane currents grouped by type.
 
@@ -60,15 +60,59 @@ def get_itotal_dataframes(df_im: DataFrame) -> DataFrame:
    Returns:
        tuple[pd.DataFrame, pd.DataFrame]:
            A tuple containing two DataFrames:
-           - The first DataFrame (`sum_by_type_pos`) contains the sum of positive currents for each type.
-           - The second DataFrame (`sum_by_type_neg`) contains the sum of negative currents for each type.
+           - The first DataFrame (`itotal_pos`) contains the sum of positive currents for each type.
+           - The second DataFrame (`itotal_neg`) contains the sum of negative currents for each type.
    """
     df_im.reset_index(inplace=True)
     df_im.drop('segment', axis=1, inplace=True)
     sum_by_type = df_im.groupby('itype').sum()
-    sum_by_type_pos = sum_by_type[sum_by_type >= 0].fillna(0)
-    sum_by_type_neg = sum_by_type[sum_by_type < 0].fillna(0)
-    return sum_by_type_pos, sum_by_type_neg
+    itotal_pos = sum_by_type[sum_by_type >= 0].fillna(0)
+    itotal_neg = sum_by_type[sum_by_type < 0].fillna(0)
+    return itotal_pos, itotal_neg
+
+
+def get_soma_currents_dataframes(im: DataFrame, iax:DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """
+    Extract and aggregate positive and negative currents for the 'soma' segment
+    from membrane and axial current data.
+
+    This function processes the given membrane (`im`) and axial (`iax`) current data,
+    separates positive and negative currents for the 'soma' segment, and appends the
+    corresponding axial currents (`soma_iax_pos` and `soma_iax_neg`) as rows to the
+    positive and negative membrane currents, respectively.
+
+    Parameters:
+        im (pd.DataFrame):
+            A DataFrame containing membrane currents for all segments and timepoints.
+        iax (pd.DataFrame):
+            A DataFrame containing axial currents for all segments and timepoints.
+
+    Returns:
+        tuple[pd.DataFrame, pd.DataFrame]:
+            A tuple containing two DataFrames:
+            - `soma_pos`: Aggregated positive currents for the 'soma' segment, including membrane and axial contributions.
+            - `soma_neg`: Aggregated negative currents for the 'soma' segment, including membrane and axial contributions.
+    """
+    soma_im = im.loc['soma']
+    soma_im_pos = soma_im[soma_im >= 0].fillna(0)
+    soma_im_neg = soma_im[soma_im < 0].fillna(0)
+
+    soma_iax = get_iax(iax, 'soma')
+    soma_iax.reset_index(inplace=True)
+    soma_iax.drop(['ref', 'par'], axis=1, inplace=True)
+    soma_iax_pos = soma_iax[soma_iax >= 0].fillna(0).sum(axis=0)
+    soma_iax_neg = soma_iax[soma_iax < 0].fillna(0).sum(axis=0)
+
+    # Convert soma_iax_pos and soma_iax_neg to DataFrames with appropriate indexing
+    soma_iax_pos = pd.DataFrame([soma_iax_pos], index=['soma_iax_pos'])
+    soma_iax_pos.columns = soma_im_pos.columns
+    soma_iax_neg = pd.DataFrame([soma_iax_neg], index=['soma_iax_neg'])
+    soma_iax_neg.columns = soma_im_neg.columns
+
+    # Concat dataframes
+    soma_pos = pd.concat([soma_im_pos, soma_iax_pos], axis=0)
+    soma_neg = pd.concat([soma_im_pos, soma_iax_neg], axis=0)
+    return soma_pos, soma_neg
 
 
 def plot_sums(im_part_pos: pd.DataFrame, im_part_neg: pd.DataFrame, df_im: pd.DataFrame, df_iax: pd.DataFrame, tps: list, segment: str) -> None:
