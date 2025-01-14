@@ -111,7 +111,7 @@ def get_soma_currents_dataframes(im: DataFrame, iax:DataFrame) -> tuple[pd.DataF
 
     # Concat dataframes
     soma_pos = pd.concat([soma_im_pos, soma_iax_pos], axis=0)
-    soma_neg = pd.concat([soma_im_pos, soma_iax_neg], axis=0)
+    soma_neg = pd.concat([soma_im_neg, soma_iax_neg], axis=0)
     return soma_pos, soma_neg
 
 
@@ -184,4 +184,4 @@ def plot_sums(im_part_pos: pd.DataFrame, im_part_neg: pd.DataFrame, df_im: pd.Da
     plt.show()
 
 if __name__ == '__main__':
-    pass
+    df = pd.read_csv('E:/cluster_seed30/partitioned_data/soma/soma_neg_0.csv')
