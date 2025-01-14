@@ -49,6 +49,28 @@ def get_iax(df: DataFrame, segment: str) -> DataFrame:
     return df_iax_seg
 
 
+def get_itotal_dataframes(df_im: DataFrame) -> DataFrame:
+    """
+   Computes the sum of positive and negative membrane currents grouped by type.
+
+   Parameters:
+       df_im (pd.DataFrame):
+           A DataFrame containing membrane currents with 'itype' and 'segment' columns.
+
+   Returns:
+       tuple[pd.DataFrame, pd.DataFrame]:
+           A tuple containing two DataFrames:
+           - The first DataFrame (`sum_by_type_pos`) contains the sum of positive currents for each type.
+           - The second DataFrame (`sum_by_type_neg`) contains the sum of negative currents for each type.
+   """
+    df_im.reset_index(inplace=True)
+    df_im.drop('segment', axis=1, inplace=True)
+    sum_by_type = df_im.groupby('itype').sum()
+    sum_by_type_pos = sum_by_type[sum_by_type >= 0].fillna(0)
+    sum_by_type_neg = sum_by_type[sum_by_type < 0].fillna(0)
+    return sum_by_type_pos, sum_by_type_neg
+
+
 def plot_sums(im_part_pos: pd.DataFrame, im_part_neg: pd.DataFrame, df_im: pd.DataFrame, df_iax: pd.DataFrame, tps: list, segment: str) -> None:
     """
     Plots the comparison of partitioned and original membrane currents for a specific segment over timepoints.
@@ -116,3 +138,6 @@ def plot_sums(im_part_pos: pd.DataFrame, im_part_neg: pd.DataFrame, df_im: pd.Da
 
     plt.tight_layout()
     plt.show()
+
+if __name__ == '__main__':
+    pass

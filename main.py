@@ -17,7 +17,7 @@ im_index_file = input_dir + '/membrane_currents_merged_soma/multiindex_merged_so
 im_values_files = glob.glob(input_dir + '/membrane_currents_merged_soma/*.npy')
 
 segment = 'soma'
-batch_size = 2 #  number of files to process parallel
+batch_size = 1 #  number of files to process parallel
 
 
 def extract_file_number(filepath):
@@ -47,8 +47,8 @@ def process_file_pair(im_file, iax_file):
     im_neg_output_path = os.path.join(output_dir, f"im_part_neg_{im_number}.csv")
 
     # Save DataFrames to CSV
-    im_part_pos.to_csv(im_pos_output_path, index=False)
-    im_part_neg.to_csv(im_neg_output_path, index=False)
+    im_part_pos.to_csv(im_pos_output_path, index=True)
+    im_part_neg.to_csv(im_neg_output_path, index=True)
 
 
 def process_in_batches(batch_size=1):
@@ -59,7 +59,7 @@ def process_in_batches(batch_size=1):
 
     # Iterate over each batch and process it
     for batch in batches:
-        with ProcessPoolExecutor(max_workers=2) as executor:
+        with ProcessPoolExecutor(max_workers=5) as executor:
             futures = [executor.submit(process_file_pair, im_file, iax_file) for im_file, iax_file in batch]
             for future in futures:
                 try:
